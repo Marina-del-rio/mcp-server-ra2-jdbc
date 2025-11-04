@@ -117,6 +117,139 @@ Para inspeccionar la base de datos:
    - **Password**: (dejar vacío)
 3. Conectar
 
+## 🤖 Configuración del Servidor MCP con Claude Code
+
+Este proyecto expone un **servidor MCP (Model Context Protocol)** que permite interactuar con las herramientas JDBC mediante Claude Code o cualquier cliente MCP compatible.
+
+### Requisitos Previos
+
+- **Servidor arrancado**: Ejecutar `./gradlew bootRun` antes de configurar MCP
+- **Claude Code instalado**: [https://claude.ai/code](https://claude.ai/code)
+
+### Configuración Automática (Recomendado)
+
+El proyecto incluye un archivo `.mcp.json` con la configuración del servidor. Claude Code lo detectará automáticamente cuando abras el proyecto.
+
+Si no se detecta automáticamente, ejecuta:
+
+```bash
+claude mcp add --transport http mcp-server-ra2-jdbc http://localhost:8082/sse
+```
+
+### Verificar Conexión
+
+```bash
+# Listar servidores MCP configurados
+claude mcp list
+
+# O desde Claude Code CLI
+/mcp
+```
+
+Deberías ver:
+```
+mcp-server-ra2-jdbc: http://localhost:8082/sse (HTTP) - ✓ Connected
+```
+
+### Herramientas MCP Disponibles
+
+Una vez conectado, Claude Code tiene acceso a 15 herramientas JDBC:
+
+#### ✅ Implementadas (5 herramientas ejemplo)
+1. `test_connection` - Prueba conexión JDBC
+2. `create_user` - INSERT con PreparedStatement
+3. `find_user_by_id` - SELECT con parámetros
+4. `update_user` - UPDATE statement
+5. `transfer_data` - Transacción manual
+
+#### ⚠️ TODO (10 herramientas para implementar)
+6. `get_connection_info` - DatabaseMetaData
+7. `delete_user` - DELETE statement
+8. `find_all_users` - SELECT all
+9. `find_users_by_department` - WHERE clause
+10. `search_users` - Dynamic queries
+11. `find_users_with_pagination` - LIMIT/OFFSET
+12. `batch_insert_users` - Batch operations
+13. `get_database_info` - Full metadata
+14. `get_table_columns` - Column metadata
+15. `execute_count_by_department` - Stored procedures
+
+### Uso con Claude Code
+
+Una vez configurado, puedes pedirle a Claude:
+
+```
+"Usa el servidor MCP para probar la conexión a la base de datos"
+→ Claude llamará a test_connection
+
+"Crea un nuevo usuario con nombre Juan y email juan@example.com"
+→ Claude llamará a create_user
+
+"Busca el usuario con ID 1"
+→ Claude llamará a find_user_by_id
+```
+
+### Endpoints del Servidor
+
+- **SSE (conexión)**: `http://localhost:8082/sse`
+- **Mensajes MCP**: `http://localhost:8082/mcp/message?sessionId=<session>`
+- **H2 Console**: `http://localhost:8082/h2-console`
+
+### ⚠️ Estado Actual - Limitación Conocida
+
+**Problema de Conectividad con Claude Code**
+
+Actualmente existe una limitación de compatibilidad entre Spring AI MCP Server WebMVC (v1.1.0-M1) y Claude Code:
+
+- ✅ **Servidor funcionando**: Puerto 8082, 6 herramientas registradas
+- ✅ **Endpoints activos**: `/mcp` (STATELESS HTTP)
+- ❌ **Claude Code no conecta**: "Failed to connect"
+
+**Causa**: Claude Code soporta servidores MCP HTTP principalmente para servicios cloud específicos (Sentry, Notion, Linear). Los servidores Spring AI MCP locales requieren transporte STDIO para mejor compatibilidad con clientes locales.
+
+**Soluciones Alternativas (Recomendadas para Estudiantes)**:
+
+1. **H2 Console** (⭐ Mejor opción para debugging):
+   ```
+   http://localhost:8082/h2-console
+   JDBC URL: jdbc:h2:mem:ra2db
+   User: sa
+   Password: (vacío)
+   ```
+   - Probar queries SQL directamente
+   - Verificar resultados de métodos implementados
+   - Ver datos en tiempo real
+
+2. **Tests JUnit** (Enfoque TDD):
+   ```bash
+   ./gradlew test
+   ```
+   - Escribir tests para cada método TODO
+   - Validar implementaciones JDBC
+   - Seguir patrón AAA (Arrange-Act-Assert)
+
+3. **Llamadas Directas desde Java**:
+   - Inyectar `DatabaseUserService` en tu código
+   - Llamar métodos directamente
+   - Integrar en aplicaciones Spring Boot
+
+**Roadmap Futuro**:
+- [ ] Migrar a `spring-ai-starter-mcp-server-stdio` para compatibilidad con Claude Code
+- [ ] Exponer API REST adicional para acceso directo
+- [ ] Actualizar cuando Spring AI MCP 1.1.0-GA o Claude Code mejoren
+
+### Troubleshooting
+
+**Servidor no arranca**
+- Verificar puerto disponible: `lsof -i :8082`
+- Revisar logs: Buscar errores en salida de `./gradlew bootRun`
+- Comprobar Java 17+ instalado
+
+**Herramientas no registradas**
+- Buscar en logs: `Registered tools: 6` o `Registered tools: 15` (cuando TODO estén completos)
+- Verificar bean `McpToolsConfiguration` está activo
+- Revisar anotaciones `@Tool` en `DatabaseUserService`
+
 ## 📚 Implementación para Estudiantes
 
 ### Métodos Implementados (Ejemplos para Aprender)

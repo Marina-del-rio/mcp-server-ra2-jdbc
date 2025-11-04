@@ -37,16 +37,13 @@ repositories {
 }
 
 ext {
-    springAiVersion = '1.0.0-M1'
+    springAiVersion = '1.1.0-M3'
 }
 
 dependencies {
     // Spring Boot Starters
     implementation 'org.springframework.boot:spring-boot-starter'
     implementation 'org.springframework.boot:spring-boot-starter-web'
-
-    // Spring AI MCP Server - Comentado hasta que esté disponible
-    // implementation "org.springframework.ai:spring-ai-mcp-server-spring-boot-starter:${springAiVersion}"
 
     // RA2: JDBC - Acceso a datos mediante conectores
 

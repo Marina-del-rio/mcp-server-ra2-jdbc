@@ -42,7 +42,6 @@ public class DatabaseConfig {
     public static void loadDriver() {
         try {
             Class.forName(DB_DRIVER);
-            System.out.println("✓ Driver JDBC H2 cargado correctamente: " + DB_DRIVER);
         } catch (ClassNotFoundException e) {
             throw new RuntimeException("Error: No se pudo cargar el driver JDBC H2. " +
                     "Asegúrate de que h2database está en el classpath.", e);
@@ -84,18 +83,13 @@ public class DatabaseConfig {
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
 
-            System.out.println("Inicializando base de datos H2...");
-
             // Ejecutar schema.sql
             executeScript(stmt, getSchemaSQL());
-            System.out.println("✓ Schema creado correctamente");
 
             // Ejecutar data.sql
             executeScript(stmt, getDataSQL());
-            System.out.println("✓ Datos de prueba insertados (8 usuarios)");
 
             initialized = true;
-            System.out.println("✓ Base de datos inicializada exitosamente");
 
         } catch (SQLException e) {
             throw new RuntimeException("Error inicializando base de datos: " + e.getMessage(), e);
@@ -171,22 +165,6 @@ public class DatabaseConfig {
             (4, 67, '2024-02-15 07:15:00'),
             (5, 31, '2024-02-12 11:20:00')
             """;
-    }
-
-    /**
-     * Información sobre la configuración actual
-     */
-    public static String getConfigInfo() {
-        return String.format(
-                "Configuración JDBC (Vanilla - sin Spring DataSource):%n" +
-                "  - URL: %s%n" +
-                "  - Usuario: %s%n" +
-                "  - Driver: %s%n" +
-                "  - Patrón: DriverManager.getConnection()",
-                DB_URL,
-                DB_USER,
-                DB_DRIVER
-        );
     }
 
     // Constructor privado para evitar instanciación

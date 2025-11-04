@@ -7,6 +7,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 
+
+
+
+
 /**
  * Aplicación Spring Boot para RA2: Acceso a datos mediante JDBC PURO
  *
@@ -50,14 +54,6 @@ public class McpAccesoDatosRa2Application {
      */
     @PostConstruct
     public void initializeDatabase() {
-        System.out.println("\n========================================");
-        System.out.println("Inicializando base de datos con JDBC puro");
-        System.out.println("(SIN Spring DataSource - Usando DriverManager)");
-        System.out.println("========================================\n");
-
         DatabaseConfig.initializeDatabase();
-
-        System.out.println("\n" + DatabaseConfig.getConfigInfo());
-        System.out.println("\n========================================\n");
     }
 }
