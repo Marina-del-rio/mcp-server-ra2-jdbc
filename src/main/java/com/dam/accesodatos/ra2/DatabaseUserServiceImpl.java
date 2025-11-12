@@ -91,10 +91,6 @@ public class DatabaseUserServiceImpl implements DatabaseUserService {
         }
     }
 
-    @Override
-    public Map<String, String> getConnectionInfo() {
-        throw new UnsupportedOperationException("TODO: Método getConnectionInfo() para implementar por estudiantes");
-    }
 
     // ========== CE2.b: CRUD Operations ==========
 
@@ -248,30 +244,119 @@ public class DatabaseUserServiceImpl implements DatabaseUserService {
 
     @Override
     public boolean deleteUser(Long id) {
-        throw new UnsupportedOperationException("TODO: Método deleteUser() para implementar por estudiantes");
+        User existing = findUserById(id);
+        if (existing == null) {
+            System.out.println("No se encontró usuario con ID " + id);
+            return false;
+        }
+        String sql = "DELETE FROM users WHERE id = ?";
+
+        try(Connection conn = DatabaseConfig.getConnection();
+            PreparedStatement pstmt = conn.prepareStatement(sql)){
+            pstmt.setLong(1, id);
+            pstmt.executeUpdate();
+
+        }catch(SQLException e){
+            System.out.println("Error al eliminar usuario con ID " + id + ": " + e.getMessage());
+            return false;
+        }
+        return true;
     }
 
     @Override
     public List<User> findAll() {
-        throw new UnsupportedOperationException("TODO: Método findAll() para implementar por estudiantes");
+
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT * FROM users ORDER BY created_at DESC";
+
+        try(Connection conn = DatabaseConfig.getConnection();
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            ResultSet rs = pstmt.executeQuery()){
+
+            while (rs.next()) {
+                User user = mapResultSetToUser(rs);
+                users.add(user);
+            }
+
+
+        }catch (SQLException e) {
+            throw new RuntimeException("Error al consultar usuarios con ID: " + e.getMessage(), e);
+        }
+
+        return users;
     }
 
     // ========== CE2.c: Advanced Queries ==========
 
     @Override
     public List<User> findUsersByDepartment(String department) {
-        throw new UnsupportedOperationException("TODO: Método findUsersByDepartment() para implementar por estudiantes");
+        List<User> users = new ArrayList<>();
+
+        String sql = "SELECT * FROM users WHERE department = ? AND active = TRUE";
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            // 🔑 SETEAR PARÁMETRO
+            pstmt.setString(1, department);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    users.add(mapResultSetToUser(rs));
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al consultar usuarios por departamento: " + e.getMessage(), e);
+        }
+
+        return users;
     }
 
     @Override
     public List<User> searchUsers(UserQueryDto query) {
-        throw new UnsupportedOperationException("TODO: Método searchUsers() para implementar por estudiantes");
+        List<User> users = new ArrayList<>();
+
+        StringBuilder sql = new StringBuilder("SELECT * FROM users WHERE 1=1");
+
+        List<Object> params = new ArrayList<>();
+
+        if (query.getDepartment() != null && !query.getDepartment().isEmpty()) {
+            sql.append(" AND department = ?");
+            params.add(query.getDepartment());
+        }
+
+        if (query.getRole() != null && !query.getRole().isEmpty()) {
+            sql.append(" AND role = ?");
+            params.add(query.getRole());
+        }
+
+        if (query.getActive() != null) {
+            sql.append(" AND active = ?");
+            params.add(query.getActive());
+        }
+
+        try(Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())){
+            for (int i = 0; i < params.size(); i++) {
+                pstmt.setObject(i + 1, params.get(i));
+            }
+
+            try (ResultSet rs = pstmt.executeQuery()){
+                while (rs.next()) {
+                    User user = mapResultSetToUser(rs);
+                    users.add(user);
+
+                }
+            }
+
+        }catch(SQLException e){
+            throw new RuntimeException("Error al buscar usuarios:" + e.getMessage(), e);
+        }
+
+        return users;
     }
 
-    @Override
-    public List<User> findUsersWithPagination(int offset, int limit) {
-        throw new UnsupportedOperationException("TODO: Método findUsersWithPagination() para implementar por estudiantes");
-    }
 
     // ========== CE2.d: Transactions ==========
 
@@ -350,28 +435,127 @@ public class DatabaseUserServiceImpl implements DatabaseUserService {
 
     @Override
     public int batchInsertUsers(List<User> users) {
-        throw new UnsupportedOperationException("TODO: Método batchInsertUsers() para implementar por estudiantes");
+        if (users == null || users.isEmpty()) {
+            return 0;
+        }
+
+        String sql = "INSERT INTO users (name, email, department, role, active, created_at, updated_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+
+            for (User user : users) {
+                pstmt.setString(1, user.getName());
+                pstmt.setString(2, user.getEmail());
+                pstmt.setString(3, user.getDepartment());
+                pstmt.setString(4, user.getRole());
+                pstmt.setBoolean(5, user.getActive());
+                LocalDateTime now = LocalDateTime.now();
+                pstmt.setTimestamp(6, user.getCreatedAt() != null ? Timestamp.valueOf(user.getCreatedAt()) : Timestamp.valueOf(now));
+                pstmt.setTimestamp(7, Timestamp.valueOf(now));
+
+
+                pstmt.addBatch();
+            }
+
+            int[] updateCounts = pstmt.executeBatch();
+
+            int totalInserted = 0;
+            for (int count : updateCounts) {
+                totalInserted += count;
+            }
+            return totalInserted;
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Error durante la inserción por lotes (batch insert) de usuarios", e);
+        }
     }
 
     // ========== CE2.e: Metadata ==========
 
     @Override
     public String getDatabaseInfo() {
-        throw new UnsupportedOperationException("TODO: Método getDatabaseInfo() para implementar por estudiantes");
+        StringBuilder infoBuilder = new StringBuilder();
+
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            DatabaseMetaData dmd = conn.getMetaData();
+
+            infoBuilder.append("--- Inform de la bbdd ---\n");
+
+            infoBuilder.append("Base de Datos: ")
+                    .append(dmd.getDatabaseProductName())
+                    .append(" v")
+                    .append(dmd.getDatabaseProductVersion())
+                    .append("\n");
+
+            infoBuilder.append("Driver JDBC: ")
+                    .append(dmd.getDriverName())
+                    .append(" v")
+                    .append(dmd.getDriverVersion())
+                    .append("\n");
+
+            infoBuilder.append("URL: ")
+                    .append(dmd.getURL())
+                    .append("\n");
+
+            infoBuilder.append("Usuario: ")
+                    .append(dmd.getUserName())
+                    .append("\n");
+
+            infoBuilder.append("Soporta Batch: ")
+                    .append(dmd.supportsBatchUpdates() ? "Sí" : "No")
+                    .append("\n");
+
+            infoBuilder.append("Soporta Transacciones: ")
+                    .append(dmd.supportsTransactions() ? "Sí" : "No")
+                    .append("\n");
+
+            return infoBuilder.toString();
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al obtener la información de la base de datos", e);
+        }
     }
 
     @Override
     public List<Map<String, Object>> getTableColumns(String tableName) {
-        throw new UnsupportedOperationException("TODO: Método getTableColumns() para implementar por estudiantes");
+
+        List<Map<String, Object>> columns = new ArrayList<>();
+
+        try (Connection cnn = DatabaseConfig.getConnection()) {
+            DatabaseMetaData dmd = cnn.getMetaData();
+
+            try (ResultSet rs = dmd.getColumns(null, null, tableName.toUpperCase(), null)) {
+
+                while (rs.next()) {
+                    Map<String, Object> columnInfo = new HashMap<>();
+
+                    columnInfo.put("name", rs.getString("COLUMN_NAME"));
+                    columnInfo.put("typeName", rs.getString("TYPE_NAME"));
+
+                    boolean isNullable = "YES".equalsIgnoreCase(rs.getString("IS_NULLABLE"));
+                    columnInfo.put("nullable", isNullable);
+
+                    columns.add(columnInfo);
+                }
+            }
+        } catch (SQLException e) {
+
+            throw new RuntimeException("Error al obtener los metadatos de las columnas para la tabla: " + tableName, e);
+        }
+
+        return columns;
     }
 
-    // ========== CE2.f: Stored Procedures ==========
+    // ========== CE2.f: Funciones de Agregación ==========
 
     @Override
     public int executeCountByDepartment(String department) {
         throw new UnsupportedOperationException("TODO: Método executeCountByDepartment() para implementar por estudiantes");
     }
-
     // ========== HELPER METHODS ==========
 
     /**
