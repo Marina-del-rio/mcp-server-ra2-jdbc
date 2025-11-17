@@ -244,7 +244,7 @@ public class DatabaseUserServiceImpl implements DatabaseUserService {
 
     @Override
     public boolean deleteUser(Long id) {
-        User existing = findUserById(id);
+        User existing = findUserById(id);//Verifica
         if (existing == null) {
             System.out.println("No se encontró usuario con ID " + id);
             return false;
@@ -480,12 +480,12 @@ public class DatabaseUserServiceImpl implements DatabaseUserService {
     public String getDatabaseInfo() {
         StringBuilder infoBuilder = new StringBuilder();
 
-        try (Connection conn = DatabaseConfig.getConnection()) {
-            DatabaseMetaData dmd = conn.getMetaData();
+        try (Connection conn = DatabaseConfig.getConnection()) {//establece comunicacion
+            DatabaseMetaData dmd = conn.getMetaData();//pide los metadatos
 
-            infoBuilder.append("--- Inform de la bbdd ---\n");
+            infoBuilder.append("--- Inform de la bbdd ---\n");//String builder para ir añadiendo la info
 
-            infoBuilder.append("Base de Datos: ")
+            infoBuilder.append("Base de Datos: ")//El SGDB y su version, etc.
                     .append(dmd.getDatabaseProductName())
                     .append(" v")
                     .append(dmd.getDatabaseProductVersion())
@@ -513,7 +513,7 @@ public class DatabaseUserServiceImpl implements DatabaseUserService {
                     .append(dmd.supportsTransactions() ? "Sí" : "No")
                     .append("\n");
 
-            return infoBuilder.toString();
+            return infoBuilder.toString();//retorna la info en String
 
         } catch (SQLException e) {
             throw new RuntimeException("Error al obtener la información de la base de datos", e);
@@ -525,14 +525,15 @@ public class DatabaseUserServiceImpl implements DatabaseUserService {
 
         List<Map<String, Object>> columns = new ArrayList<>();
 
-        try (Connection cnn = DatabaseConfig.getConnection()) {
-            DatabaseMetaData dmd = cnn.getMetaData();
+        try (Connection conn = DatabaseConfig.getConnection()) {//establece comunicacion
+            DatabaseMetaData dmd = conn.getMetaData();//pide los metadatos
 
-            try (ResultSet rs = dmd.getColumns(null, null, tableName.toUpperCase(), null)) {
+            try (ResultSet rs = dmd.getColumns(null, null, tableName.toUpperCase(), null)) {//buscamos las columnas de la tabla que inserte el usuario
 
                 while (rs.next()) {
-                    Map<String, Object> columnInfo = new HashMap<>();
+                    Map<String, Object> columnInfo = new HashMap<>();//para poder guardar la info de cada columna que se encuentre
 
+                    //info de la tabla: nombre, tipo, si se puede o no ser nula
                     columnInfo.put("name", rs.getString("COLUMN_NAME"));
                     columnInfo.put("typeName", rs.getString("TYPE_NAME"));
 
@@ -561,7 +562,7 @@ public class DatabaseUserServiceImpl implements DatabaseUserService {
 
             pstmt.setString(1, department);
 
-            try(ResultSet rs = pstmt.executeQuery()){
+            try(ResultSet rs = pstmt.executeQuery()){//se obtiene el valor del count yendo a la primera columna del resultado
                 if(rs.next()){
                     return rs.getInt(1);
                 }
